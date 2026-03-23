@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Problem {
+  id          Int                 @id @default(autoincrement())
+  title       String
+  category    ProblemCategory
+  type        ProblemType
+  content     String?
+  imageUrl    String?
+  answerText  String?
+  isDeleted   Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  choices     ProblemChoice[]
+  explanation ProblemExplanation?
+}
+
+model ProblemChoice {
+  id        Int      @id @default(autoincrement())
+  problemId Int
+  choiceNo  Int
+  content   String
+
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId])
+}
+
+model ProblemExplanation {
+  id        Int                       @id @default(autoincrement())
+  problemId Int                       @unique
+  text      String?
+
+  problem   Problem                   @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  images    ProblemExplanationImage[]
+}
+
+model ProblemExplanationImage {
+  id            Int                 @id @default(autoincrement())
+  explanationId Int
+  imageUrl      String
+  sortOrder     Int                 @default(0)
+
+  explanation   ProblemExplanation  @relation(fields: [explanationId], references: [id], onDelete: Cascade)
+
+  @@index([explanationId])
+}
+
+enum ProblemCategory {
+  M1
+  M2
+  M3
+  M4
+  M5
+  M6
+  M7
+}
+
+enum ProblemType {
+  multiple
+  short
+  essay
+  code
+}
