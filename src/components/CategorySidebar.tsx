@@ -47,7 +47,17 @@ export default function CategorySidebar({
   return (
     <aside className="rounded-2xl border bg-white p-4 text-gray-700 shadow">
       <div className="mb-10">
-        <h2 className="text-2xl font-bold text-gray-900">TOPCIT 에센스</h2>
+        <div className="mb-10">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/";
+            }}
+            className="text-2xl font-bold text-gray-900 transition hover:text-blue-600"
+          >
+            TOPCIT 에센스
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">
