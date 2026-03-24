@@ -9,6 +9,7 @@ function toClientProblem(problem: any) {
     type: problem.type,
     content: problem.content ?? undefined,
     imageUrl: problem.imageUrl ?? undefined,
+    imageUrls: problem.imageUrl ? [problem.imageUrl] : [],
     choices:
       problem.choices
         ?.sort((a: any, b: any) => a.choiceNo - b.choiceNo)

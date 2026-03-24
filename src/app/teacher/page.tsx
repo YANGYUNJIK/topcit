@@ -28,12 +28,30 @@ export default function TeacherPage() {
   const [category, setCategory] = useState<ProblemCategory>("M1");
   const [type, setType] = useState<ProblemType>("multiple");
   const [questionText, setQuestionText] = useState("");
-  const [questionImageUrl, setQuestionImageUrl] = useState("");
+  // const [questionImageUrl, setQuestionImageUrl] = useState("");
+  const [questionImages, setQuestionImages] = useState<string[]>([""]);
   const [choices, setChoices] = useState(["", "", "", ""]);
   const [answer, setAnswer] = useState("");
   const [explanationText, setExplanationText] = useState("");
   const [explanationImages, setExplanationImages] = useState([""]);
   const [loading, setLoading] = useState(false);
+
+  const handleQuestionImageChange = (index: number, value: string) => {
+    setQuestionImages((prev) =>
+      prev.map((item, i) => (i === index ? value : item)),
+    );
+  };
+
+  const addQuestionImageInput = () => {
+    setQuestionImages((prev) => [...prev, ""]);
+  };
+
+  const removeQuestionImageInput = (index: number) => {
+    setQuestionImages((prev) => {
+      if (prev.length <= 1) return [""];
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
   const [filterCategory, setFilterCategory] = useState<ProblemCategory | "ALL">(
     "ALL",
@@ -81,7 +99,8 @@ export default function TeacherPage() {
     setCategory("M1");
     setType("multiple");
     setQuestionText("");
-    setQuestionImageUrl("");
+    // setQuestionImageUrl("");
+    setQuestionImages([""]);
     setChoices(["", "", "", ""]);
     setAnswer("");
     setExplanationText("");
@@ -147,6 +166,9 @@ export default function TeacherPage() {
   const buildPayload = () => {
     const trimmedChoices = choices.map((choice) => choice.trim());
 
+    const firstQuestionImage =
+      questionImages.find((image) => image.trim() !== "")?.trim() || "";
+
     const filteredExplanationImages = explanationImages
       .map((image) => image.trim())
       .filter((image) => image !== "");
@@ -156,7 +178,7 @@ export default function TeacherPage() {
       category,
       type,
       content: questionText.trim() || undefined,
-      imageUrl: questionImageUrl.trim() || undefined,
+      imageUrl: firstQuestionImage || undefined,
       choices: type === "multiple" ? trimmedChoices : undefined,
       answer: answer.trim() || undefined,
       explanation:
@@ -297,7 +319,8 @@ export default function TeacherPage() {
     setCategory(problem.category);
     setType(problem.type);
     setQuestionText(problem.content || "");
-    setQuestionImageUrl(problem.imageUrl || "");
+    // setQuestionImageUrl(problem.imageUrl || "");
+    setQuestionImages(problem.imageUrl ? [problem.imageUrl] : [""]);
     setChoices(
       problem.type === "multiple"
         ? [
@@ -462,49 +485,74 @@ export default function TeacherPage() {
               문제 이미지 URL
             </label> */}
             <div className="mt-3">
-              <div className="mt-3 flex items-center gap-3">
-                <label
-                  htmlFor="question-image-upload"
-                  className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              <div className="mt-6">
+                <div className="space-y-3">
+                  {questionImages.map((image, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <label
+                          htmlFor={`question-image-upload-${index}`}
+                          className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                        >
+                          문제 이미지 등록
+                        </label>
+
+                        <input
+                          id={`question-image-upload-${index}`}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            try {
+                              setLoading(true);
+                              const data = await uploadImage(file);
+                              handleQuestionImageChange(index, data.url);
+                            } catch (error) {
+                              console.error(error);
+                              alert("문제 이미지 업로드에 실패했습니다.");
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                        />
+
+                        {image ? (
+                          <img
+                            src={image}
+                            alt={`문제 이미지 ${index + 1}`}
+                            className="h-20 rounded-lg border object-contain"
+                          />
+                        ) : (
+                          <span className="text-sm text-gray-500">
+                            선택된 파일 없음
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeQuestionImageInput(index)}
+                        className="rounded-lg bg-red-500 px-3 py-2 text-white"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addQuestionImageInput}
+                  className="mt-3 rounded-lg bg-gray-200 px-4 py-2"
                 >
-                  문제 이미지 등록
-                </label>
-
-                <input
-                  id="question-image-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-
-                    try {
-                      setLoading(true);
-                      const data = await uploadImage(file);
-                      setQuestionImageUrl(data.url);
-                    } catch (error) {
-                      console.error(error);
-                      alert("문제 이미지 업로드에 실패했습니다.");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                />
-
-                <span className="text-sm text-gray-700">
-                  {questionImageUrl ? (
-                    <img
-                      src={questionImageUrl}
-                      alt="문제 이미지 미리보기"
-                      className="h-20 rounded-lg border border-gray-300 object-contain"
-                    />
-                  ) : (
-                    <span className="text-sm text-gray-700">
-                      선택된 파일 없음
-                    </span>
-                  )}
-                </span>
+                  문제 이미지 추가
+                </button>
               </div>
             </div>
           </div>

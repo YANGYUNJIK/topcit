@@ -49,6 +49,12 @@ export default function Home() {
 
   const filteredProblems = useMemo(() => problems, [problems]);
   const currentProblem = filteredProblems[currentIndex];
+  const problemImages =
+    currentProblem?.imageUrls && currentProblem.imageUrls.length > 0
+      ? currentProblem.imageUrls.filter((image) => image && image.trim() !== "")
+      : currentProblem?.imageUrl
+        ? [currentProblem.imageUrl]
+        : [];
 
   const handleSelectCategory = (category: ProblemCategory) => {
     setSelectedCategory(category);
@@ -218,17 +224,22 @@ export default function Home() {
                   </p>
                 )}
 
-                {currentProblem.imageUrl && (
-                  // <div className="relative flex w-full justify-center overflow-hidden rounded-xl border bg-gray-100 p-4">
-                  <div className="w-full rounded-xl border bg-gray-100 p-4">
-                    <Image
-                      src={currentProblem.imageUrl}
-                      alt={currentProblem.title}
-                      width={1200}
-                      height={900}
-                      className="w-full h-auto object-contain"
-                      // className="mx-auto h-auto max-h-[700px] w-auto max-w-full object-contain"
-                    />
+                {problemImages.length > 0 && (
+                  <div className="mt-4 flex flex-col gap-4">
+                    {problemImages.map((image, index) => (
+                      <div
+                        key={index}
+                        className="w-full rounded-xl border bg-gray-100 p-4"
+                      >
+                        <Image
+                          src={image}
+                          alt={`${currentProblem.title} 이미지 ${index + 1}`}
+                          width={1200}
+                          height={900}
+                          className="h-auto w-full object-contain"
+                        />
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -244,6 +255,7 @@ export default function Home() {
 
               <div className="mb-6 flex flex-wrap justify-between gap-3">
                 <button
+                  type="button"
                   onClick={goPrev}
                   disabled={currentIndex === 0}
                   className="rounded-lg bg-gray-600 px-4 py-2 text-white disabled:opacity-50"
@@ -253,6 +265,7 @@ export default function Home() {
 
                 <div className="flex gap-3">
                   <button
+                    type="button"
                     onClick={handleGrade}
                     className="rounded-lg bg-emerald-600 px-4 py-2 text-white"
                   >
@@ -268,6 +281,7 @@ export default function Home() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={goNext}
                     disabled={currentIndex === filteredProblems.length - 1}
                     className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50"

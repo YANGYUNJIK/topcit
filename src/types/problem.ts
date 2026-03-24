@@ -14,6 +14,7 @@ export interface Problem {
   type: ProblemType;
   content?: string;
   imageUrl?: string;
+  imageUrls?: string[];
   choices?: string[];
   answer?: string;
   explanation?: ProblemExplanation;
