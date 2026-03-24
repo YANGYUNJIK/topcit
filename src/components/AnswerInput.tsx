@@ -25,8 +25,9 @@ export default function AnswerInput({
   if (problem.type === "multiple") {
     return (
       <div className="flex flex-col gap-3">
-        {problem.choices?.map((choice) => {
-          const isSelected = value === choice;
+        {problem.choices?.map((choice, index) => {
+          const choiceNumber = String(index + 1);
+          const isSelected = value === choiceNumber;
 
           const choiceStyle = isSelected
             ? gradingResult === "correct"
@@ -38,18 +39,20 @@ export default function AnswerInput({
 
           return (
             <label
-              key={choice}
+              key={`${problem.id}-${index}`}
               className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-gray-900 transition ${choiceStyle}`}
             >
               <input
                 type="radio"
                 name={`problem-${problem.id}`}
-                value={choice}
+                value={choiceNumber}
                 checked={isSelected}
                 onChange={(e) => onChange(e.target.value)}
                 className="h-4 w-4"
               />
-              <span className="font-medium text-gray-900">{choice}</span>
+              <span className="font-medium text-gray-900">
+                {index + 1}. {choice}
+              </span>
             </label>
           );
         })}
