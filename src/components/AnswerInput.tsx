@@ -67,7 +67,7 @@ export default function AnswerInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="답을 입력하세요"
-        className={`w-full rounded-lg border p-3 outline-none transition ${resultStyle}`}
+        className={`w-full rounded-lg text-gray-900 border p-3 outline-none transition ${resultStyle}`}
       />
     );
   }
@@ -79,7 +79,7 @@ export default function AnswerInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder="서술형 답안을 입력하세요"
         rows={8}
-        className={`w-full rounded-lg border p-3 outline-none transition ${resultStyle}`}
+        className={`w-full rounded-lg text-gray-900 border p-3 outline-none transition ${resultStyle}`}
       />
     );
   }
@@ -91,7 +91,7 @@ export default function AnswerInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder="코드를 입력하세요"
         rows={14}
-        className={`w-full rounded-lg border p-3 font-mono outline-none transition ${resultStyle}`}
+        className={`w-full rounded-lg text-gray-900 border p-3 font-mono outline-none transition ${resultStyle}`}
       />
     );
   }

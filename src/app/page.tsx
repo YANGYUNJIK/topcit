@@ -92,8 +92,10 @@ export default function Home() {
   const handleGrade = () => {
     if (!currentProblem) return;
 
-    if (currentProblem.type === "essay") {
-      alert("서술형은 현재 자동 채점을 지원하지 않습니다.");
+    if (currentProblem.type === "essay" || currentProblem.type === "code") {
+      alert(
+        "서술형 및 코드 문제는 현재 자동 채점을 지원하지 않습니다.\n추후 업데이트 예정입니다.",
+      );
       return;
     }
 
@@ -244,15 +246,14 @@ export default function Home() {
                     {currentProblem.content}
                   </p>
                 )}
-
                 {currentProblem.imageUrl && (
-                  <div className="relative flex w-full justify-center overflow-hidden rounded-xl border bg-gray-100 p-4">
+                  <div className="relative w-full overflow-hidden rounded-xl border bg-gray-100 p-4">
                     <Image
                       src={currentProblem.imageUrl}
                       alt={currentProblem.title}
-                      width={1200}
-                      height={900}
-                      className="mx-auto h-auto max-h-[700px] w-auto max-w-full object-contain"
+                      width={1600}
+                      height={1200}
+                      className="mx-auto h-auto w-full max-h-[900px] object-contain"
                     />
                   </div>
                 )}

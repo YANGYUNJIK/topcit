@@ -357,7 +357,7 @@ export default function TeacherPage() {
     <main className="min-h-screen bg-gray-50 p-6 text-gray-900">
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-2xl bg-white p-6 shadow">
-          <div className="mb-6 flex items-center justify-between">
+          {/* <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900">
               문제 관리 페이지
             </h1>
@@ -376,6 +376,27 @@ export default function TeacherPage() {
                 수정 모드
               </span>
             )}
+          </div> */}
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">
+              문제 관리 페이지
+            </h1>
+
+            <div className="flex items-center gap-3">
+              {editingId && (
+                <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800">
+                  수정 모드
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => (window.location.href = "/")}
+                className="rounded-xl border border-gray-300 bg-white px-6 py-3 text-lg font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                ← 메인으로
+              </button>
+            </div>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             <div>
