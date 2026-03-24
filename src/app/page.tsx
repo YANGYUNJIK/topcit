@@ -1,24 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { UserCog } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import AnswerInput from "@/src/components/AnswerInput";
+import CategorySidebar from "@/src/components/CategorySidebar";
 import { Problem, ProblemCategory } from "@/src/types/problem";
-
-const categories: { key: ProblemCategory; label: string }[] = [
-  { key: "M1", label: "M1. 소프트웨어 개발" },
-  { key: "M2", label: "M2. 데이터 관리" },
-  { key: "M3", label: "M3. 시스템 아키텍처와 정보보안" },
-  { key: "M4", label: "M4. IT 비즈니스" },
-  { key: "M5", label: "M5. IT비즈니스와 윤리" },
-  { key: "M6", label: "M6. TC와 PM" },
-  { key: "M7", label: "M7. 통합역량" },
-];
+import { UserCog } from "lucide-react";
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] =
     useState<ProblemCategory | null>(null);
+  const [expandedCategory, setExpandedCategory] =
+    useState<ProblemCategory | null>(null);
+
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -28,12 +22,6 @@ export default function Home() {
   const [gradingResult, setGradingResult] = useState<
     "correct" | "wrong" | null
   >(null);
-
-  useEffect(() => {
-    setCurrentIndex(0);
-    setShowExplanation(false);
-    setGradingResult(null);
-  }, [selectedCategory]);
 
   useEffect(() => {
     if (!selectedCategory) {
@@ -61,6 +49,23 @@ export default function Home() {
 
   const filteredProblems = useMemo(() => problems, [problems]);
   const currentProblem = filteredProblems[currentIndex];
+
+  const handleSelectCategory = (category: ProblemCategory) => {
+    setSelectedCategory(category);
+    setCurrentIndex(0);
+    setShowExplanation(false);
+    setGradingResult(null);
+  };
+
+  const handleToggleCategory = (category: ProblemCategory) => {
+    setExpandedCategory((prev) => (prev === category ? null : category));
+  };
+
+  const handleSelectProblem = (index: number) => {
+    setCurrentIndex(index);
+    setShowExplanation(false);
+    setGradingResult(null);
+  };
 
   const handleAnswerChange = (value: string) => {
     if (!currentProblem) return;
@@ -93,9 +98,7 @@ export default function Home() {
     if (!currentProblem) return;
 
     if (currentProblem.type === "essay" || currentProblem.type === "code") {
-      alert(
-        "서술형 및 코드 문제는 현재 자동 채점을 지원하지 않습니다.\n추후 업데이트 예정입니다.",
-      );
+      alert("서술형 및 코드 문제는 현재 자동 채점을 지원하지 않습니다.");
       return;
     }
 
@@ -140,41 +143,17 @@ export default function Home() {
           관리자
         </button>
       </div>
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <aside className="rounded-2xl border bg-white p-4 text-gray-700 shadow">
-          <div className="mb-10">
-            <button
-              onClick={() => {
-                setSelectedCategory(null);
-                setCurrentIndex(0);
-                setShowExplanation(false);
-                setGradingResult(null);
-              }}
-              className="text-2xl font-bold text-left text-gray-900 hover:text-blue-600"
-            >
-              TOPCIT 에센스
-            </button>
-          </div>
 
-          <div className="flex flex-col gap-3">
-            {categories.map((category) => (
-              <button
-                key={category.key}
-                onClick={() => setSelectedCategory(category.key)}
-                className={`flex items-center gap-3 rounded-lg border p-3 text-left font-semibold transition ${
-                  selectedCategory === category.key
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <span className="flex h-8 w-8 items-center justify-center border text-xl font-bold">
-                  +
-                </span>
-                <span>{category.label}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+        <CategorySidebar
+          selectedCategory={selectedCategory}
+          expandedCategory={expandedCategory}
+          onSelectCategory={handleSelectCategory}
+          onToggleCategory={handleToggleCategory}
+          problems={filteredProblems}
+          currentIndex={currentIndex}
+          onSelectProblem={handleSelectProblem}
+        />
 
         <section className="rounded-2xl bg-white p-6 shadow">
           {!selectedCategory ? (
@@ -219,7 +198,10 @@ export default function Home() {
               </p>
 
               <button
-                onClick={() => setSelectedCategory(null)}
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setExpandedCategory(null);
+                }}
                 className="rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
               >
                 ← 메인으로 돌아가기
@@ -228,16 +210,14 @@ export default function Home() {
           ) : (
             <>
               <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-2xl font-bold  text-gray-800">
-                  TOPCIT CBT
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-800">TOPCIT CBT</h1>
                 <p className="text-sm text-gray-700">
                   {currentIndex + 1} / {filteredProblems.length}
                 </p>
               </div>
 
               <div className="mb-6">
-                <h2 className="mb-2 text-xl font-semibold  text-gray-700">
+                <h2 className="mb-2 text-xl font-semibold text-gray-700">
                   {currentProblem.title}
                 </h2>
 
@@ -246,14 +226,17 @@ export default function Home() {
                     {currentProblem.content}
                   </p>
                 )}
+
                 {currentProblem.imageUrl && (
-                  <div className="relative w-full overflow-hidden rounded-xl border bg-gray-100 p-4">
+                  // <div className="relative flex w-full justify-center overflow-hidden rounded-xl border bg-gray-100 p-4">
+                  <div className="w-full rounded-xl border bg-gray-100 p-4">
                     <Image
                       src={currentProblem.imageUrl}
                       alt={currentProblem.title}
-                      width={1600}
-                      height={1200}
-                      className="mx-auto h-auto w-full max-h-[900px] object-contain"
+                      width={1200}
+                      height={900}
+                      className="w-full h-auto object-contain"
+                      // className="mx-auto h-auto max-h-[700px] w-auto max-w-full object-contain"
                     />
                   </div>
                 )}
@@ -272,7 +255,7 @@ export default function Home() {
                 <button
                   onClick={goPrev}
                   disabled={currentIndex === 0}
-                  className="rounded-lg bg-gray-600 px-4 py-2 disabled:opacity-50"
+                  className="rounded-lg bg-gray-600 px-4 py-2 text-white disabled:opacity-50"
                 >
                   이전 문제
                 </button>
