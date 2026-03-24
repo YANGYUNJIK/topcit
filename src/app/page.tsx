@@ -119,15 +119,6 @@ export default function Home() {
 
   const handleToggleExplanation = () => {
     setShowExplanation((prev) => !prev);
-
-    if (!showExplanation) {
-      setTimeout(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: "smooth",
-        });
-      }, 50);
-    }
   };
 
   return (
@@ -269,6 +260,7 @@ export default function Home() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={handleToggleExplanation}
                     className="rounded-lg bg-amber-500 px-4 py-2 text-white"
                   >
