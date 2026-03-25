@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Problem, ProblemCategory } from "@/src/types/problem";
 
 interface CategorySidebarProps {
@@ -35,6 +36,24 @@ const getProblemTypeLabel = (type: Problem["type"]) => {
   }
 };
 
+// 🔥 핵심: 20개 묶음
+const CHUNK_SIZE = 20;
+
+const chunkProblems = (problems: Problem[]) => {
+  const chunks = [];
+
+  for (let i = 0; i < problems.length; i += CHUNK_SIZE) {
+    chunks.push({
+      start: i + 1,
+      end: Math.min(i + CHUNK_SIZE, problems.length),
+      items: problems.slice(i, i + CHUNK_SIZE),
+      startIndex: i,
+    });
+  }
+
+  return chunks;
+};
+
 export default function CategorySidebar({
   selectedCategory,
   expandedCategory,
@@ -44,20 +63,29 @@ export default function CategorySidebar({
   currentIndex,
   onSelectProblem,
 }: CategorySidebarProps) {
+  const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(
+    null,
+  );
+
+  // 🔥 카테고리 바뀌면 초기화
+  useEffect(() => {
+    setSelectedChunkIndex(null);
+  }, [expandedCategory, selectedCategory]);
+
+  const groupedProblems = chunkProblems(problems);
+
   return (
     <aside className="rounded-2xl border bg-white p-4 text-gray-700 shadow">
       <div className="mb-10">
-        <div className="mb-10">
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "/";
-            }}
-            className="text-2xl font-bold text-gray-900 transition hover:text-blue-600"
-          >
-            TOPCIT 에센스
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/";
+          }}
+          className="text-2xl font-bold text-gray-900 hover:text-blue-600"
+        >
+          TOPCIT 에센스
+        </button>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -68,7 +96,7 @@ export default function CategorySidebar({
           return (
             <div
               key={category.key}
-              className={`overflow-hidden rounded-xl border transition ${
+              className={`overflow-hidden rounded-xl border ${
                 isSelected ? "border-blue-500" : "border-gray-300"
               }`}
             >
@@ -86,7 +114,7 @@ export default function CategorySidebar({
                     onSelectCategory(category.key);
                     onToggleCategory(category.key);
                   }}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-current text-xl font-bold transition hover:bg-white/70"
+                  className="flex h-9 w-9 items-center justify-center rounded-md border text-xl font-bold"
                 >
                   {isExpanded ? "-" : "+"}
                 </button>
@@ -94,44 +122,61 @@ export default function CategorySidebar({
                 <button
                   type="button"
                   onClick={() => onSelectCategory(category.key)}
-                  className="flex-1 text-left text-lg font-semibold transition hover:opacity-80"
+                  className="flex-1 text-left text-lg font-semibold"
                 >
                   {category.label}
                 </button>
               </div>
 
+              {/* 🔥 여기부터 핵심 변경 */}
               {isExpanded && isSelected && problems.length > 0 && (
-                <div className="border-t bg-gray-50 p-3">
-                  <div className="flex flex-col gap-2">
-                    {problems.map((problem, index) => {
-                      const isCurrent = index === currentIndex;
-
-                      return (
-                        <button
-                          key={problem.id}
-                          type="button"
-                          onClick={() => onSelectProblem(index)}
-                          className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left transition ${
-                            isCurrent
-                              ? "border-blue-500 bg-blue-100 text-blue-700"
-                              : "border-gray-200 bg-white text-gray-800 hover:border-gray-300 hover:bg-gray-100"
-                          }`}
-                        >
-                          <span className="font-semibold">{index + 1}번</span>
-
-                          <span
-                            className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                              isCurrent
-                                ? "bg-blue-200 text-blue-800"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {getProblemTypeLabel(problem.type)}
-                          </span>
-                        </button>
-                      );
-                    })}
+                <div className="border-t bg-gray-50 p-3 space-y-3">
+                  {/* 👉 묶음 버튼 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {groupedProblems.map((group, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedChunkIndex(index)}
+                        className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold hover:bg-gray-100"
+                      >
+                        {group.start} ~ {group.end}
+                      </button>
+                    ))}
                   </div>
+
+                  {/* 👉 선택된 묶음 */}
+                  {selectedChunkIndex !== null && (
+                    <div className="max-h-72 overflow-y-auto rounded-lg border bg-white p-2">
+                      {groupedProblems[selectedChunkIndex].items.map(
+                        (problem, i) => {
+                          const actualIndex =
+                            groupedProblems[selectedChunkIndex].startIndex + i;
+
+                          const isCurrent = actualIndex === currentIndex;
+
+                          return (
+                            <button
+                              key={problem.id}
+                              onClick={() => onSelectProblem(actualIndex)}
+                              className={`mb-2 flex w-full items-center justify-between rounded-lg border px-3 py-2 ${
+                                isCurrent
+                                  ? "border-blue-500 bg-blue-100 text-blue-700"
+                                  : "border-gray-200 hover:bg-gray-100"
+                              }`}
+                            >
+                              <span className="font-semibold">
+                                {actualIndex + 1}번
+                              </span>
+
+                              <span className="text-xs font-semibold text-gray-600">
+                                {getProblemTypeLabel(problem.type)}
+                              </span>
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

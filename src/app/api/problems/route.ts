@@ -1,7 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 
+// function toClientProblem(problem: any) {
+//   return {
+//     id: problem.id,
+//     title: problem.title,
+//     category: problem.category,
+//     type: problem.type,
+//     content: problem.content ?? undefined,
+//     imageUrl: problem.imageUrl ?? undefined,
+//     imageUrls: problem.imageUrl ? [problem.imageUrl] : [],
+//     choices:
+//       problem.choices
+//         ?.sort((a: any, b: any) => a.choiceNo - b.choiceNo)
+//         .map((choice: any) => choice.content) ?? [],
+//     answer: problem.answerText ?? undefined,
+//     explanation: problem.explanation
+//       ? {
+//           text: problem.explanation.text ?? "",
+//           images:
+//             problem.explanation.images
+//               ?.sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+//               .map((image: any) => image.imageUrl)
+//               .filter((url: string) => url && url.trim() !== "") ?? [],
+//         }
+//       : undefined,
+//   };
+// }
+
 function toClientProblem(problem: any) {
+  const sortedProblemImages =
+    problem.images
+      ?.sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+      .map((image: any) => image.imageUrl)
+      .filter((url: string) => url && url.trim() !== "") ?? [];
+
   return {
     id: problem.id,
     title: problem.title,
@@ -9,7 +42,12 @@ function toClientProblem(problem: any) {
     type: problem.type,
     content: problem.content ?? undefined,
     imageUrl: problem.imageUrl ?? undefined,
-    imageUrls: problem.imageUrl ? [problem.imageUrl] : [],
+    imageUrls:
+      sortedProblemImages.length > 0
+        ? sortedProblemImages
+        : problem.imageUrl
+          ? [problem.imageUrl]
+          : [],
     choices:
       problem.choices
         ?.sort((a: any, b: any) => a.choiceNo - b.choiceNo)
@@ -42,6 +80,7 @@ export async function GET(request: NextRequest) {
     },
     include: {
       choices: true,
+      images: true,
       explanation: {
         include: {
           images: true,
@@ -78,14 +117,33 @@ export async function POST(request: NextRequest) {
         .filter((image: string) => image !== "")
     : [];
 
+  const questionImages = Array.isArray(body.imageUrls)
+    ? body.imageUrls
+        .map((image: string) => image.trim())
+        .filter((image: string) => image !== "")
+    : body.imageUrl?.trim()
+      ? [body.imageUrl.trim()]
+      : [];
+
   const created = await prisma.problem.create({
     data: {
       title: body.title.trim(),
       category: body.category,
       type: body.type,
       content: body.content?.trim() || null,
-      imageUrl: body.imageUrl?.trim() || null,
+      imageUrl: questionImages[0] || null, // 기존 호환 유지
       answerText: body.answer?.trim() || null,
+
+      images:
+        questionImages.length > 0
+          ? {
+              create: questionImages.map((image: string, index: number) => ({
+                imageUrl: image,
+                sortOrder: index,
+              })),
+            }
+          : undefined,
+
       choices:
         body.type === "multiple" && choices.length > 0
           ? {
@@ -95,6 +153,7 @@ export async function POST(request: NextRequest) {
               })),
             }
           : undefined,
+
       explanation:
         body.explanation?.text?.trim() || explanationImages.length > 0
           ? {
@@ -117,6 +176,7 @@ export async function POST(request: NextRequest) {
     },
     include: {
       choices: true,
+      images: true,
       explanation: {
         include: {
           images: true,

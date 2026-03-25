@@ -13,7 +13,7 @@ model Problem {
   category    ProblemCategory
   type        ProblemType
   content     String?
-  imageUrl    String?
+  imageUrl    String?             // 기존 호환용: 첫 번째 문제 이미지
   answerText  String?
   isDeleted   Boolean             @default(false)
   createdAt   DateTime            @default(now())
@@ -21,6 +21,18 @@ model Problem {
 
   choices     ProblemChoice[]
   explanation ProblemExplanation?
+  images      ProblemImage[]
+}
+
+model ProblemImage {
+  id        Int      @id @default(autoincrement())
+  problemId Int
+  imageUrl  String
+  sortOrder Int      @default(0)
+
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId])
 }
 
 model ProblemChoice {

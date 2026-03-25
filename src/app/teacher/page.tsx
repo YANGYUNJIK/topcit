@@ -163,11 +163,40 @@ export default function TeacherPage() {
     });
   };
 
+  // const buildPayload = () => {
+  //   const trimmedChoices = choices.map((choice) => choice.trim());
+
+  //   const firstQuestionImage =
+  //     questionImages.find((image) => image.trim() !== "")?.trim() || "";
+
+  //   const filteredExplanationImages = explanationImages
+  //     .map((image) => image.trim())
+  //     .filter((image) => image !== "");
+
+  //   return {
+  //     title: title.trim(),
+  //     category,
+  //     type,
+  //     content: questionText.trim() || undefined,
+  //     imageUrl: firstQuestionImage || undefined,
+  //     choices: type === "multiple" ? trimmedChoices : undefined,
+  //     answer: answer.trim() || undefined,
+  //     explanation:
+  //       explanationText.trim() || filteredExplanationImages.length > 0
+  //         ? {
+  //             text: explanationText.trim(),
+  //             images: filteredExplanationImages,
+  //           }
+  //         : undefined,
+  //   };
+  // };
+
   const buildPayload = () => {
     const trimmedChoices = choices.map((choice) => choice.trim());
 
-    const firstQuestionImage =
-      questionImages.find((image) => image.trim() !== "")?.trim() || "";
+    const filteredQuestionImages = questionImages
+      .map((image) => image.trim())
+      .filter((image) => image !== "");
 
     const filteredExplanationImages = explanationImages
       .map((image) => image.trim())
@@ -178,7 +207,8 @@ export default function TeacherPage() {
       category,
       type,
       content: questionText.trim() || undefined,
-      imageUrl: firstQuestionImage || undefined,
+      imageUrl: filteredQuestionImages[0] || undefined, // 기존 호환 유지
+      imageUrls: filteredQuestionImages, // 새 배열 추가
       choices: type === "multiple" ? trimmedChoices : undefined,
       answer: answer.trim() || undefined,
       explanation:
@@ -320,7 +350,14 @@ export default function TeacherPage() {
     setType(problem.type);
     setQuestionText(problem.content || "");
     // setQuestionImageUrl(problem.imageUrl || "");
-    setQuestionImages(problem.imageUrl ? [problem.imageUrl] : [""]);
+    // problem.imageUrl ? [problem.imageUrl] : [""];
+    setQuestionImages(
+      problem.imageUrls && problem.imageUrls.length > 0
+        ? problem.imageUrls
+        : problem.imageUrl
+          ? [problem.imageUrl]
+          : [""],
+    );
     setChoices(
       problem.type === "multiple"
         ? [
