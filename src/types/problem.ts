@@ -19,4 +19,6 @@ export interface Problem {
   answer?: string;
   explanation?: ProblemExplanation;
   displayNumber?: number;
+  // 모의평가에서 1~50 표시용
+  mockNumber?: number;
 }

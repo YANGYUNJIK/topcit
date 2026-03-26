@@ -7,6 +7,19 @@ import CategorySidebar from "@/src/components/CategorySidebar";
 import { Problem, ProblemCategory } from "@/src/types/problem";
 import { UserCog } from "lucide-react";
 
+type ExamMode = "category" | "mock";
+
+function shuffleArray<T>(array: T[]) {
+  const copied = [...array];
+
+  for (let i = copied.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copied[i], copied[j]] = [copied[j], copied[i]];
+  }
+
+  return copied;
+}
+
 export default function Home() {
   const [selectedCategory, setSelectedCategory] =
     useState<ProblemCategory | null>(null);
@@ -22,6 +35,17 @@ export default function Home() {
   const [gradingResult, setGradingResult] = useState<
     "correct" | "wrong" | null
   >(null);
+
+  const [examMode, setExamMode] = useState<ExamMode>("category");
+  const [submitted, setSubmitted] = useState(false);
+
+  const [mockResult, setMockResult] = useState<{
+    score: number;
+    total: number;
+    correctNumbers: number[];
+    wrongNumbers: number[];
+    wrongByCategory: Record<string, number[]>;
+  } | null>(null);
 
   useEffect(() => {
     if (!selectedCategory) {
@@ -123,6 +147,95 @@ export default function Home() {
     }
   };
 
+  const startMockExam = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/problems");
+      const allProblems: Problem[] = await res.json();
+
+      const shuffled = shuffleArray(allProblems);
+      const selected = shuffled.slice(0, 50).map((p, i) => ({
+        ...p,
+        mockNumber: i + 1,
+      }));
+
+      setProblems(selected);
+      setExamMode("mock");
+      setSelectedCategory(null);
+      setExpandedCategory(null);
+      setCurrentIndex(0);
+      setAnswers({});
+      setShowExplanation(false);
+      setGradingResult(null);
+      setSubmitted(false);
+      setMockResult(null);
+    } catch (e) {
+      console.error("모의평가 시작 실패", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitMock = () => {
+    const correctNumbers: number[] = [];
+    const wrongNumbers: number[] = [];
+    const wrongByCategory: Record<string, number[]> = {};
+
+    let score = 0;
+    let total = 0;
+
+    problems.forEach((problem, index) => {
+      const mockNumber = problem.mockNumber ?? index + 1;
+
+      if (problem.type !== "multiple" && problem.type !== "short") {
+        return;
+      }
+
+      total++;
+
+      const userAnswer = (answers[problem.id] || "").trim();
+      const correctAnswer = (problem.answer || "").trim();
+
+      const isCorrect =
+        userAnswer !== "" &&
+        correctAnswer !== "" &&
+        userAnswer === correctAnswer;
+
+      if (isCorrect) {
+        score++;
+        correctNumbers.push(mockNumber);
+      } else {
+        wrongNumbers.push(mockNumber);
+
+        const category = problem.category;
+        const categoryNumber = problem.displayNumber ?? 0;
+
+        if (!wrongByCategory[category]) {
+          wrongByCategory[category] = [];
+        }
+
+        if (categoryNumber > 0) {
+          wrongByCategory[category].push(categoryNumber);
+        }
+      }
+    });
+
+    Object.keys(wrongByCategory).forEach((c) =>
+      wrongByCategory[c].sort((a, b) => a - b),
+    );
+
+    setMockResult({
+      score,
+      total,
+      correctNumbers,
+      wrongNumbers,
+      wrongByCategory,
+    });
+
+    setSubmitted(true);
+  };
+
   const handleToggleExplanation = () => {
     setShowExplanation((prev) => !prev);
   };
@@ -134,7 +247,7 @@ export default function Home() {
           onClick={() => {
             window.location.href = "/teacher/login";
           }}
-          className="flex items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white shadow transition hover:bg-gray-900"
+          className="flex items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-900"
         >
           <UserCog size={16} />
           관리자
@@ -153,7 +266,7 @@ export default function Home() {
         />
 
         <section className="rounded-2xl bg-white p-6 shadow">
-          {!selectedCategory ? (
+          {examMode === "category" && !selectedCategory ? (
             <div className="flex min-h-[500px] flex-col items-center justify-center text-center">
               <h1 className="mb-4 text-4xl font-bold text-gray-900">
                 TOPCIT CBT
@@ -179,6 +292,14 @@ export default function Home() {
                   </h1>
                   <p className="text-2xl text-blue-600">2026.10.10.</p>
                 </div>
+              </div>
+              <div className="mt-8">
+                <button
+                  onClick={startMockExam}
+                  className="rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600"
+                >
+                  모의평가 시작
+                </button>
               </div>
             </div>
           ) : loading ? (
@@ -208,14 +329,26 @@ export default function Home() {
             <>
               <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-gray-800">TOPCIT CBT</h1>
-                <p className="text-sm text-gray-700">
-                  {currentIndex + 1} / {filteredProblems.length}
+                <p className="text-sm font-semibold text-gray-900">
+                  {examMode === "mock"
+                    ? `${currentProblem.mockNumber ?? currentIndex + 1} / ${problems.length}`
+                    : `${currentProblem.displayNumber ?? currentIndex + 1} / ${problems.length}`}
                 </p>
               </div>
 
+              {examMode === "mock" && (
+                <div className="mb-4 rounded-lg border-2 border-orange-300 bg-orange-50 px-4 py-3 text-center">
+                  <p className="text-base font-bold text-orange-600">
+                    현재 모의평가를 진행 중입니다.
+                  </p>
+                </div>
+              )}
+
               <div className="mb-6">
                 <p className="mb-2 text-sm font-semibold text-blue-600">
-                  {currentProblem.displayNumber ?? currentIndex + 1}번
+                  {examMode === "mock"
+                    ? `${currentProblem.mockNumber ?? currentIndex + 1}번`
+                    : `${currentProblem.displayNumber ?? currentIndex + 1}번`}
                 </p>
 
                 <h2 className="mb-2 text-xl font-semibold text-gray-700">
@@ -268,21 +401,25 @@ export default function Home() {
                 </button>
 
                 <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={handleGrade}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-white"
-                  >
-                    채점
-                  </button>
+                  {examMode === "category" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleGrade}
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-white"
+                      >
+                        채점
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={handleToggleExplanation}
-                    className="rounded-lg bg-amber-500 px-4 py-2 text-white"
-                  >
-                    해설
-                  </button>
+                      <button
+                        type="button"
+                        onClick={handleToggleExplanation}
+                        className="rounded-lg bg-amber-500 px-4 py-2 text-white"
+                      >
+                        해설
+                      </button>
+                    </>
+                  )}
 
                   <button
                     type="button"
@@ -292,10 +429,22 @@ export default function Home() {
                   >
                     다음 문제
                   </button>
+
+                  {examMode === "mock" &&
+                    currentIndex === problems.length - 1 &&
+                    !submitted && (
+                      <button
+                        onClick={handleSubmitMock}
+                        className="rounded-lg bg-red-600 px-4 py-2 text-white"
+                      >
+                        최종 제출
+                      </button>
+                    )}
                 </div>
               </div>
 
-              {showExplanation &&
+              {examMode === "category" &&
+                showExplanation &&
                 (() => {
                   const explanationImages =
                     currentProblem.explanation?.images?.filter(
@@ -338,6 +487,43 @@ export default function Home() {
                   );
                 })()}
             </>
+          )}
+          {examMode === "mock" && submitted && mockResult && (
+            <div className="mt-10 rounded-xl border-2 border-orange-200 bg-white p-6 shadow">
+              <h3 className="mb-4 text-2xl font-bold text-gray-900">
+                모의평가 결과
+              </h3>
+
+              <p className="text-lg font-bold text-gray-900">
+                점수: {mockResult.score} / {mockResult.total}
+              </p>
+
+              <p className="mt-3 text-base font-semibold text-gray-900">
+                맞은 문제: {mockResult.correctNumbers.join(", ") || "없음"}
+              </p>
+
+              <p className="mt-2 text-base font-semibold text-gray-900">
+                틀린 문제: {mockResult.wrongNumbers.join(", ") || "없음"}
+              </p>
+
+              <div className="mt-5">
+                <h4 className="mb-2 text-lg font-bold text-gray-900">
+                  카테고리별 틀린 문제
+                </h4>
+
+                {Object.entries(mockResult.wrongByCategory).length > 0 ? (
+                  Object.entries(mockResult.wrongByCategory).map(
+                    ([cat, nums]) => (
+                      <p key={cat} className="mt-1 font-semibold text-gray-900">
+                        {cat}: {nums.join(", ")}
+                      </p>
+                    ),
+                  )
+                ) : (
+                  <p className="font-semibold text-gray-900">없음</p>
+                )}
+              </div>
+            </div>
           )}
         </section>
       </div>
