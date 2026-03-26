@@ -81,6 +81,14 @@ export default function Home() {
         : [];
 
   const handleSelectCategory = (category: ProblemCategory) => {
+    if (examMode === "mock" && !submitted) {
+      const ok = window.confirm(
+        "모의평가를 종료하고 해당 카테고리로 이동하시겠습니까?\n진행 중인 모의평가 내용은 종료됩니다.",
+      );
+
+      if (!ok) return;
+    }
+
     setExamMode("category");
     setSubmitted(false);
     setMockResult(null);
