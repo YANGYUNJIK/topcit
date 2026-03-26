@@ -10,7 +10,6 @@ function toClientProblem(problem: any) {
 
   return {
     id: problem.id,
-    number: problem.number,
     title: problem.title,
     category: problem.category,
     type: problem.type,
@@ -40,6 +39,25 @@ function toClientProblem(problem: any) {
   };
 }
 
+function attachDisplayNumbers(problems: any[]) {
+  const counters: Record<string, number> = {};
+
+  return problems.map((problem) => {
+    const category = problem.category;
+
+    if (!counters[category]) {
+      counters[category] = 1;
+    } else {
+      counters[category] += 1;
+    }
+
+    return {
+      ...problem,
+      displayNumber: counters[category],
+    };
+  });
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
@@ -63,7 +81,10 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  return NextResponse.json(problems.map(toClientProblem));
+  const clientProblems = problems.map(toClientProblem);
+  const numberedProblems = attachDisplayNumbers(clientProblems);
+
+  return NextResponse.json(numberedProblems);
 }
 
 async function checkTeacherAuth(request: NextRequest) {
@@ -101,12 +122,11 @@ export async function POST(request: NextRequest) {
 
   const created = await prisma.problem.create({
     data: {
-      number: Number(body.number),
       title: body.title.trim(),
       category: body.category,
       type: body.type,
       content: body.content?.trim() || null,
-      imageUrl: questionImages[0] || null, // 기존 호환 유지
+      imageUrl: questionImages[0] || null,
       answerText: body.answer?.trim() || null,
 
       images:

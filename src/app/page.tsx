@@ -215,7 +215,7 @@ export default function Home() {
 
               <div className="mb-6">
                 <p className="mb-2 text-sm font-semibold text-blue-600">
-                  {currentProblem.number}번
+                  {currentProblem.displayNumber ?? currentIndex + 1}번
                 </p>
 
                 <h2 className="mb-2 text-xl font-semibold text-gray-700">

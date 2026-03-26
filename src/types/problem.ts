@@ -9,7 +9,6 @@ export interface ProblemExplanation {
 
 export interface Problem {
   id: number;
-  number: number;
   title: string;
   category: ProblemCategory;
   type: ProblemType;
@@ -19,4 +18,5 @@ export interface Problem {
   choices?: string[];
   answer?: string;
   explanation?: ProblemExplanation;
+  displayNumber?: number;
 }
