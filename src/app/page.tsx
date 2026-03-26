@@ -81,7 +81,12 @@ export default function Home() {
         : [];
 
   const handleSelectCategory = (category: ProblemCategory) => {
+    setExamMode("category");
+    setSubmitted(false);
+    setMockResult(null);
+
     setSelectedCategory(category);
+    setExpandedCategory(category);
     setCurrentIndex(0);
     setShowExplanation(false);
     setGradingResult(null);
@@ -109,6 +114,8 @@ export default function Home() {
   };
 
   const goPrev = () => {
+    if (submitted) return;
+
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
       setShowExplanation(false);
@@ -117,6 +124,8 @@ export default function Home() {
   };
 
   const goNext = () => {
+    if (submitted) return;
+
     if (currentIndex < filteredProblems.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setShowExplanation(false);
@@ -178,6 +187,11 @@ export default function Home() {
   };
 
   const handleSubmitMock = () => {
+    const ok = window.confirm(
+      "지금 제출하시겠습니까?\n제출 후 모의평가 결과가 바로 표시됩니다.",
+    );
+
+    if (!ok) return;
     const correctNumbers: number[] = [];
     const wrongNumbers: number[] = [];
     const wrongByCategory: Record<string, number[]> = {};
@@ -339,7 +353,9 @@ export default function Home() {
               {examMode === "mock" && (
                 <div className="mb-4 rounded-lg border-2 border-orange-300 bg-orange-50 px-4 py-3 text-center">
                   <p className="text-base font-bold text-orange-600">
-                    현재 모의평가를 진행 중입니다.
+                    {submitted
+                      ? "모의평가가 종료되었습니다."
+                      : "현재 모의평가를 진행 중입니다."}
                   </p>
                 </div>
               )}
@@ -390,23 +406,23 @@ export default function Home() {
                 />
               </div>
 
-              <div className="mb-6 flex flex-wrap justify-between gap-3">
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={goPrev}
-                  disabled={currentIndex === 0}
-                  className="rounded-lg bg-gray-600 px-4 py-2 text-white disabled:opacity-50"
+                  disabled={submitted || currentIndex === 0}
+                  className="rounded-lg bg-gray-600 px-5 py-3 text-white disabled:opacity-50"
                 >
                   이전 문제
                 </button>
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {examMode === "category" && (
                     <>
                       <button
                         type="button"
                         onClick={handleGrade}
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-white"
+                        className="rounded-lg bg-emerald-600 px-5 py-3 text-base font-semibold text-white"
                       >
                         채점
                       </button>
@@ -414,7 +430,7 @@ export default function Home() {
                       <button
                         type="button"
                         onClick={handleToggleExplanation}
-                        className="rounded-lg bg-amber-500 px-4 py-2 text-white"
+                        className="rounded-lg bg-amber-500 px-5 py-3 text-base font-semibold text-white"
                       >
                         해설
                       </button>
@@ -424,22 +440,20 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={goNext}
-                    disabled={currentIndex === filteredProblems.length - 1}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+                    disabled={submitted || currentIndex === problems.length - 1}
+                    className="rounded-lg bg-blue-600 px-5 py-3 text-white disabled:opacity-50"
                   >
                     다음 문제
                   </button>
 
-                  {examMode === "mock" &&
-                    currentIndex === problems.length - 1 &&
-                    !submitted && (
-                      <button
-                        onClick={handleSubmitMock}
-                        className="rounded-lg bg-red-600 px-4 py-2 text-white"
-                      >
-                        최종 제출
-                      </button>
-                    )}
+                  {examMode === "mock" && !submitted && (
+                    <button
+                      onClick={handleSubmitMock}
+                      className="rounded-lg bg-red-600 px-5 py-3 text-base font-semibold text-white hover:bg-red-700"
+                    >
+                      지금 제출하기
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -489,41 +503,60 @@ export default function Home() {
             </>
           )}
           {examMode === "mock" && submitted && mockResult && (
-            <div className="mt-10 rounded-xl border-2 border-orange-200 bg-white p-6 shadow">
-              <h3 className="mb-4 text-2xl font-bold text-gray-900">
-                모의평가 결과
-              </h3>
+            <>
+              <div className="mt-8 rounded-xl border bg-white p-6 shadow">
+                <h3 className="mb-4 text-xl font-bold text-gray-900">
+                  모의평가 결과
+                </h3>
 
-              <p className="text-lg font-bold text-gray-900">
-                점수: {mockResult.score} / {mockResult.total}
-              </p>
+                <p className="font-semibold text-gray-900">
+                  점수: {mockResult.score} / {mockResult.total}
+                </p>
 
-              <p className="mt-3 text-base font-semibold text-gray-900">
-                맞은 문제: {mockResult.correctNumbers.join(", ") || "없음"}
-              </p>
+                <p className="mt-2 font-semibold text-gray-900">
+                  맞은 문제: {mockResult.correctNumbers.join(", ") || "없음"}
+                </p>
 
-              <p className="mt-2 text-base font-semibold text-gray-900">
-                틀린 문제: {mockResult.wrongNumbers.join(", ") || "없음"}
-              </p>
+                <p className="font-semibold text-gray-900">
+                  틀린 문제: {mockResult.wrongNumbers.join(", ") || "없음"}
+                </p>
 
-              <div className="mt-5">
-                <h4 className="mb-2 text-lg font-bold text-gray-900">
-                  카테고리별 틀린 문제
-                </h4>
+                <div className="mt-4">
+                  <h4 className="font-bold text-gray-900">
+                    카테고리별 틀린 문제
+                  </h4>
 
-                {Object.entries(mockResult.wrongByCategory).length > 0 ? (
-                  Object.entries(mockResult.wrongByCategory).map(
+                  {Object.entries(mockResult.wrongByCategory).map(
                     ([cat, nums]) => (
-                      <p key={cat} className="mt-1 font-semibold text-gray-900">
+                      <p key={cat} className="font-semibold text-gray-900">
                         {cat}: {nums.join(", ")}
                       </p>
                     ),
-                  )
-                ) : (
-                  <p className="font-semibold text-gray-900">없음</p>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+
+              {/* 👇 여기 추가 */}
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={() => {
+                    setExamMode("category");
+                    setSelectedCategory(null);
+                    setExpandedCategory(null);
+                    setProblems([]);
+                    setAnswers({});
+                    setCurrentIndex(0);
+                    setShowExplanation(false);
+                    setGradingResult(null);
+                    setSubmitted(false);
+                    setMockResult(null);
+                  }}
+                  className="rounded-lg bg-gray-800 px-6 py-3 text-base font-semibold text-white hover:bg-gray-900"
+                >
+                  모의평가 종료
+                </button>
+              </div>
+            </>
           )}
         </section>
       </div>
