@@ -1,33 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 
-// function toClientProblem(problem: any) {
-//   return {
-//     id: problem.id,
-//     title: problem.title,
-//     category: problem.category,
-//     type: problem.type,
-//     content: problem.content ?? undefined,
-//     imageUrl: problem.imageUrl ?? undefined,
-//     imageUrls: problem.imageUrl ? [problem.imageUrl] : [],
-//     choices:
-//       problem.choices
-//         ?.sort((a: any, b: any) => a.choiceNo - b.choiceNo)
-//         .map((choice: any) => choice.content) ?? [],
-//     answer: problem.answerText ?? undefined,
-//     explanation: problem.explanation
-//       ? {
-//           text: problem.explanation.text ?? "",
-//           images:
-//             problem.explanation.images
-//               ?.sort((a: any, b: any) => a.sortOrder - b.sortOrder)
-//               .map((image: any) => image.imageUrl)
-//               .filter((url: string) => url && url.trim() !== "") ?? [],
-//         }
-//       : undefined,
-//   };
-// }
-
 function toClientProblem(problem: any) {
   const sortedProblemImages =
     problem.images
@@ -37,6 +10,7 @@ function toClientProblem(problem: any) {
 
   return {
     id: problem.id,
+    number: problem.number,
     title: problem.title,
     category: problem.category,
     type: problem.type,
@@ -127,6 +101,7 @@ export async function POST(request: NextRequest) {
 
   const created = await prisma.problem.create({
     data: {
+      number: Number(body.number),
       title: body.title.trim(),
       category: body.category,
       type: body.type,

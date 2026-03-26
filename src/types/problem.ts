@@ -9,6 +9,7 @@ export interface ProblemExplanation {
 
 export interface Problem {
   id: number;
+  number: number;
   title: string;
   category: ProblemCategory;
   type: ProblemType;
