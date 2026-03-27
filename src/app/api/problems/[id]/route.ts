@@ -60,7 +60,8 @@ export async function PUT(
 
   const title = body.title?.trim();
   const content = body.content?.trim() || null;
-  const answer = body.answer?.trim() || null;
+  // const answer = body.answer?.trim() || null;
+  const answer = body.type === "uml" ? null : body.answer?.trim() || null;
 
   if (!title) {
     return NextResponse.json(

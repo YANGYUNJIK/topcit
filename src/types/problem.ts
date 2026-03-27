@@ -1,4 +1,4 @@
-export type ProblemType = "multiple" | "short" | "essay" | "code";
+export type ProblemType = "multiple" | "short" | "essay" | "code" | "uml";
 
 export type ProblemCategory = "M1" | "M2" | "M3" | "M4" | "M5" | "M6" | "M7";
 

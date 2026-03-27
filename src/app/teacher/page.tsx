@@ -18,6 +18,7 @@ const types: { key: ProblemType; label: string }[] = [
   { key: "short", label: "단답형" },
   { key: "essay", label: "서술형" },
   { key: "code", label: "코드 작성" },
+  { key: "uml", label: "UML 작성" },
 ];
 
 export default function TeacherPage() {

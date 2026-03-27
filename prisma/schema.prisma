@@ -81,4 +81,5 @@ enum ProblemType {
   short
   essay
   code
+  uml
 }

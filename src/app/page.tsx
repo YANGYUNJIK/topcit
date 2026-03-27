@@ -6,6 +6,18 @@ import AnswerInput from "@/src/components/AnswerInput";
 import CategorySidebar from "@/src/components/CategorySidebar";
 import { Problem, ProblemCategory } from "@/src/types/problem";
 import { UserCog } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 type ExamMode = "category" | "mock";
 
@@ -18,6 +30,100 @@ function shuffleArray<T>(array: T[]) {
   }
 
   return copied;
+}
+
+function normalizeText(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[.,!?()[\]{}'":;~`]/g, "")
+    .trim();
+}
+
+function getLevenshteinDistance(a: string, b: string): number {
+  const matrix = Array.from({ length: b.length + 1 }, () =>
+    Array(a.length + 1).fill(0),
+  );
+
+  for (let i = 0; i <= a.length; i++) {
+    matrix[0][i] = i;
+  }
+
+  for (let j = 0; j <= b.length; j++) {
+    matrix[j][0] = j;
+  }
+
+  for (let j = 1; j <= b.length; j++) {
+    for (let i = 1; i <= a.length; i++) {
+      if (a[i - 1] === b[j - 1]) {
+        matrix[j][i] = matrix[j - 1][i - 1];
+      } else {
+        matrix[j][i] = Math.min(
+          matrix[j - 1][i] + 1,
+          matrix[j][i - 1] + 1,
+          matrix[j - 1][i - 1] + 1,
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
+
+function getSimilarity(a: string, b: string): number {
+  if (!a && !b) return 1;
+  if (!a || !b) return 0;
+
+  const distance = getLevenshteinDistance(a, b);
+  const maxLength = Math.max(a.length, b.length);
+
+  return 1 - distance / maxLength;
+}
+
+function isEssayCorrect(userAnswer: string, correctAnswer: string): boolean {
+  const normalizedUser = normalizeText(userAnswer);
+
+  const answerCandidates = correctAnswer
+    .split("\n")
+    .map((text) => text.trim())
+    .filter(Boolean);
+
+  if (!normalizedUser || answerCandidates.length === 0) {
+    return false;
+  }
+
+  return answerCandidates.some((candidate) => {
+    const normalizedCorrect = normalizeText(candidate);
+
+    if (!normalizedCorrect) return false;
+
+    if (normalizedUser === normalizedCorrect) return true;
+
+    if (
+      normalizedUser.includes(normalizedCorrect) ||
+      normalizedCorrect.includes(normalizedUser)
+    ) {
+      return true;
+    }
+
+    const similarity = getSimilarity(normalizedUser, normalizedCorrect);
+    return similarity >= 0.75;
+  });
+}
+
+function normalizeCode(code: string) {
+  return code.replace(/\r\n/g, "\n").replace(/\s+/g, "").trim();
+}
+
+function isCodeCorrect(userCode: string, correctCode: string): boolean {
+  const normalizedUser = normalizeCode(userCode);
+  const normalizedCorrect = normalizeCode(correctCode);
+
+  if (!normalizedUser || !normalizedCorrect) {
+    return false;
+  }
+
+  return normalizedUser === normalizedCorrect;
 }
 
 export default function Home() {
@@ -144,16 +250,28 @@ export default function Home() {
   const handleGrade = () => {
     if (!currentProblem) return;
 
-    if (currentProblem.type === "essay" || currentProblem.type === "code") {
-      alert("서술형 및 코드 문제는 현재 자동 채점을 지원하지 않습니다.");
-      return;
-    }
-
     const userAnswer = (answers[currentProblem.id] || "").trim();
     const correctAnswer = (currentProblem.answer || "").trim();
 
+    if (currentProblem.type === "uml") {
+      alert("UML 문제는 채점을 제공하지 않습니다.\n해설을 확인하세요.");
+      return;
+    }
+
     if (!userAnswer || !correctAnswer) {
       setGradingResult("wrong");
+      return;
+    }
+
+    if (currentProblem.type === "essay") {
+      const correct = isEssayCorrect(userAnswer, correctAnswer);
+      setGradingResult(correct ? "correct" : "wrong");
+      return;
+    }
+
+    if (currentProblem.type === "code") {
+      const correct = isCodeCorrect(userAnswer, correctAnswer);
+      setGradingResult(correct ? "correct" : "wrong");
       return;
     }
 
@@ -171,7 +289,11 @@ export default function Home() {
       const res = await fetch("/api/problems");
       const allProblems: Problem[] = await res.json();
 
-      const shuffled = shuffleArray(allProblems);
+      const mockAvailableProblems = allProblems.filter(
+        (problem) => problem.type !== "uml",
+      );
+
+      const shuffled = shuffleArray(mockAvailableProblems);
       const selected = shuffled.slice(0, 50).map((p, i) => ({
         ...p,
         mockNumber: i + 1,
@@ -210,9 +332,9 @@ export default function Home() {
     problems.forEach((problem, index) => {
       const mockNumber = problem.mockNumber ?? index + 1;
 
-      if (problem.type !== "multiple" && problem.type !== "short") {
-        return;
-      }
+      // if (problem.type !== "multiple" && problem.type !== "short") {
+      //   return;
+      // }
 
       total++;
 
@@ -261,6 +383,44 @@ export default function Home() {
   const handleToggleExplanation = () => {
     setShowExplanation((prev) => !prev);
   };
+
+  const chartData = mockResult
+    ? Object.entries(mockResult.wrongByCategory).map(([category, nums]) => ({
+        name: category,
+        wrong: nums.length,
+      }))
+    : [];
+
+  const accuracyData = mockResult
+    ? Object.entries(mockResult.wrongByCategory).map(
+        ([category, wrongNums]) => {
+          // 해당 카테고리 전체 문제 수 계산
+          const totalInCategory = problems.filter(
+            (p) => p.category === category,
+          ).length;
+
+          const wrongCount = wrongNums.length;
+          const correctCount = totalInCategory - wrongCount;
+
+          const accuracy =
+            totalInCategory > 0
+              ? Math.round((correctCount / totalInCategory) * 100)
+              : 0;
+
+          return {
+            name: category,
+            accuracy,
+          };
+        },
+      )
+    : [];
+
+  const pieData = mockResult
+    ? [
+        { name: "정답", value: mockResult.score },
+        { name: "오답", value: mockResult.total - mockResult.score },
+      ]
+    : [];
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
@@ -427,20 +587,22 @@ export default function Home() {
                 <div className="flex flex-wrap items-center gap-3">
                   {examMode === "category" && (
                     <>
-                      <button
-                        type="button"
-                        onClick={handleGrade}
-                        className="rounded-lg bg-emerald-600 px-5 py-3 text-base font-semibold text-white"
-                      >
-                        채점
-                      </button>
+                      {currentProblem.type !== "uml" && (
+                        <button
+                          type="button"
+                          onClick={handleGrade}
+                          className="rounded-lg bg-emerald-600 px-5 py-3 text-base font-semibold text-white"
+                        >
+                          채점
+                        </button>
+                      )}
 
                       <button
                         type="button"
                         onClick={handleToggleExplanation}
                         className="rounded-lg bg-amber-500 px-5 py-3 text-base font-semibold text-white"
                       >
-                        해설
+                        {currentProblem.type === "uml" ? "예시 보기" : "해설"}
                       </button>
                     </>
                   )}
@@ -517,19 +679,64 @@ export default function Home() {
                   모의평가 결과
                 </h3>
 
-                <p className="font-semibold text-gray-900">
+                {/* 📊 그래프 영역 */}
+                <div className="mt-10 grid md:grid-cols-2 gap-6">
+                  {/* 📊 막대 그래프 (카테고리별 약점) */}
+                  <div className="rounded-xl border bg-white p-4 shadow">
+                    <h3 className="mb-4 text-lg font-bold text-gray-900">
+                      카테고리별 취약 영역
+                    </h3>
+
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="wrong" fill="#6b7280" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* 🥧 원형 그래프 (정답률) */}
+                  <div className="rounded-xl border bg-white p-4 shadow">
+                    <h3 className="mb-4 text-lg font-bold text-gray-900 text-center">
+                      정답률
+                    </h3>
+
+                    <div className="h-[300px] w-full flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            dataKey="value"
+                            outerRadius={100}
+                            label
+                          >
+                            <Cell fill="#6b7280" />
+                            <Cell fill="#d1d5db" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-8 font-semibold text-gray-900">
                   점수: {mockResult.score} / {mockResult.total}
                 </p>
 
-                <p className="mt-2 font-semibold text-gray-900">
+                {/* <p className="mt-2 font-semibold text-gray-900">
                   맞은 문제: {mockResult.correctNumbers.join(", ") || "없음"}
                 </p>
 
                 <p className="font-semibold text-gray-900">
                   틀린 문제: {mockResult.wrongNumbers.join(", ") || "없음"}
-                </p>
+                </p> */}
 
-                <div className="mt-4">
+                {/* <div className="mt-4">
                   <h4 className="font-bold text-gray-900">
                     카테고리별 틀린 문제
                   </h4>
@@ -541,10 +748,37 @@ export default function Home() {
                       </p>
                     ),
                   )}
+                </div> */}
+
+                <div className="mt-10">
+                  <h3 className="mb-4 text-xl font-bold text-gray-900">
+                    카테고리별 정답률
+                  </h3>
+
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={accuracyData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis domain={[0, 100]} />
+                        <Tooltip formatter={(value) => `${value}%`} />
+
+                        <Bar dataKey="accuracy" radius={[6, 6, 0, 0]}>
+                          {accuracyData.map((entry, index) => {
+                            let color = "#d1d5db"; // 기본 (약함)
+
+                            if (entry.accuracy >= 80) color = "#4b5563";
+                            else if (entry.accuracy >= 50) color = "#9ca3af";
+
+                            return <Cell key={index} fill={color} />;
+                          })}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 
-              {/* 👇 여기 추가 */}
               <div className="mt-6 flex justify-center">
                 <button
                   onClick={() => {
@@ -567,6 +801,28 @@ export default function Home() {
             </>
           )}
         </section>
+        <footer className="mt-10 border-t pt-6 text-center text-sm text-gray-500">
+          <p className="font-semibold text-gray-700">TOPCIT CBT 학습 플랫폼</p>
+
+          <p className="mt-2">문제 풀이 · 모의평가 · 학습 통계 제공</p>
+
+          <div className="mt-3 flex justify-center gap-4 text-gray-400">
+            <span className="cursor-pointer hover:text-gray-600">
+              이용 안내
+            </span>
+            <span className="cursor-pointer hover:text-gray-600">
+              문제 신고
+            </span>
+            {/* <span
+              className="cursor-pointer hover:text-gray-600"
+              onClick={() => (window.location.href = "/teacher/login")}
+            >
+              관리자
+            </span> */}
+          </div>
+
+          <p className="mt-3 text-xs text-gray-400">© 2026 TOPCIT CBT</p>
+        </footer>
       </div>
     </main>
   );

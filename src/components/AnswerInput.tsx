@@ -96,5 +96,21 @@ export default function AnswerInput({
     );
   }
 
+  if (problem.type === "uml") {
+    return (
+      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <p className="text-sm text-blue-700 font-medium">UML 문제입니다.</p>
+
+        <p className="mt-2 text-sm text-blue-600">
+          직접 다이어그램을 작성해보세요. (topcit 사이트 활용)
+        </p>
+
+        <p className="mt-2 text-sm text-blue-500">
+          채점은 제공되지 않으며, 해설에서 예시를 확인할 수 있습니다.
+        </p>
+      </div>
+    );
+  }
+
   return null;
 }

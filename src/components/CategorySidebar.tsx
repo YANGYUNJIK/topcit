@@ -31,6 +31,8 @@ const getProblemTypeLabel = (type: Problem["type"]) => {
       return "서술형";
     case "code":
       return "소스코드";
+    case "uml":
+      return "다이어그램";
     default:
       return "";
   }
